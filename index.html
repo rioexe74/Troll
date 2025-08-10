@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troll Coin - Get Trolled</title>
+    <!-- Chosen Palette: Neon Glitch -->
+    <!-- Application Structure Plan: The application uses a single-page, three-column "immersive" hero layout. The central column is the focal point, containing the primary user interaction: the "Trollifier" tool. This immediately engages the user with the site's core utility. The flanking columns ("Meme Walls") provide constant, dynamic visual stimulation, reinforcing the chaotic, meme-centric brand. This structure was chosen to maximize immediate engagement and virality by funneling users directly to the shareable content generator, which is the project's main growth engine. -->
+    <!-- Visualization & Content Choices: The core feature, the "Trollifier," uses client-side canvas manipulation (Fabric.js) to overlay a troll face onto a user's (mock) profile picture. Goal: Engagement/Virality. Method: Interactive Canvas. Interaction: User inputs a username, clicks a button, then can drag, scale, and rotate the overlay image. Justification: This provides an immediate, fun, and personalized reward, encouraging users to share their creation. The "Meme Walls" use a simple, continuous CSS animation to scroll images. Goal: Atmosphere/Branding. Method: HTML/CSS Animation. Justification: Creates a visually rich and dynamic environment without complex user interaction, setting the "trolling" tone instantly. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        @keyframes scroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+        .meme-wall-scroll {
+            animation: scroll 60s linear infinite;
+        }
+        @keyframes blink {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 0 #fff); opacity: 1; }
+            40% { filter: brightness(1.15) drop-shadow(0 0 8px #fff176); opacity: 1; }
+            50% { filter: brightness(1.25) drop-shadow(0 0 16px #ffb300); opacity: 0.25; }
+            60% { filter: brightness(1.15) drop-shadow(0 0 8px #fff176); opacity: 1; }
+        }
+        .blink {
+            animation: blink 2.2s infinite;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            /* background color changed to deep orange */
+            background-color: #2d1800;
+        }
+        .font-glitch {
+            font-family: 'Rubik Mono One', sans-serif;
+        }
+        #vanta-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+        .btn-troll {
+            transition: all 0.3s ease;
+            /* box-shadow changed to orange/yellow */
+            box-shadow: 0 0 10px #ffb300, 0 0 20px #ffb300, 0 0 30px #ffb300;
+        }
+        .btn-troll:hover {
+            transform: translateY(-3px) scale(1.05);
+            /* box-shadow changed to orange/yellow */
+            box-shadow: 0 0 15px #ff9800, 0 0 30px #ff9800, 0 0 45px #ff9800;
+        }
+        .glitch-text {
+            /* text-shadow changed to yellow/orange */
+            text-shadow: 
+                -1px -1px 0 #ffe082, 
+                 1px -1px 0 #ff9800, 
+                -1px  1px 0 #ffe082, 
+                 1px  1px 0 #ff9800;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div id="vanta-canvas"></div>
+
+    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-30">
+        <div id="contractHeader" class="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 hover:bg-orange-500 text-black font-bold shadow-lg border-2 border-orange-400 text-sm transition select-none">
+            <span>Contract Address (CA):</span>
+            <span id="contractAddress">000000</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16h8M8 12h8m-7 8h6a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+    </div>
+
+    <div class="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+        <div class="absolute top-0 left-0 h-full w-1/4 md:w-1/5 overflow-hidden opacity-60">
+            <div class="meme-wall-scroll flex flex-col gap-4 p-4">
+                <img src="1.png" class="rounded-lg w-full border-4 border-yellow-400 shadow-lg shadow-orange-400/40 outline outline-2 outline-offset-2 outline-orange-500">
+                <img src="2.png" class="rounded-lg w-full border-4 border-orange-400 shadow-lg shadow-yellow-400/40 outline outline-2 outline-offset-2 outline-yellow-500">
+                <img src="3.jpg" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
+                <img src="4.jpg" class="rounded-lg w-full border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+                <img src="5.jpg" class="rounded-lg w-full border-4 border-yellow-400 shadow-lg shadow-orange-400/40 outline outline-2 outline-offset-2 outline-orange-500">
+                <img src="6.png" class="rounded-lg w-full border-4 border-orange-400 shadow-lg shadow-yellow-400/40 outline outline-2 outline-offset-2 outline-yellow-500">
+                <img src="1.png" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
+                <img src="2.png" class="rounded-lg wfull border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+            </div>
+        </div>
+
+        <div class="z-10 w-full max-w-2xl mx-auto text-center bg-black bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 md:p-10 border border-yellow-400 shadow-2xl shadow-yellow-500/20">
+            <h1 class="font-glitch text-4xl md:text-6xl lg:text-7xl mb-4 glitch-text uppercase">Get Trolled</h1>
+            <p class="text-yellow-200 mb-8 max-w-md mx-auto">Your profile picture is boring. Our highly advanced, probably-sentient Troll Engine will apply a 1000% necessary upgrade. Enter your Twitter handle to begin.</p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <input id="usernameInput" type="text" placeholder="@your_twitter_name" class="w-full sm:w-64 bg-gray-800 border-2 border-yellow-500 focus:border-orange-400 focus:ring-0 text-white placeholder-yellow-500 rounded-lg px-4 py-3 text-center transition">
+                <button id="trollifyBtn" class="btn-troll font-glitch bg-yellow-500 hover:bg-orange-500 text-white rounded-lg px-8 py-3 text-xl uppercase">Trollify!</button>
+            </div>
+            <div id="pfpPreviewArea" class="hidden flex flex-col items-center justify-center mb-6">
+                <div class="relative inline-block">
+                    <img id="pfpPreview" src="" alt="Profile Preview" class="rounded-full border-4 border-yellow-400 shadow-lg shadow-orange-400/40 w-32 h-32 object-cover">
+                    <img src="https://i.imgur.com/YJ8b8rW.png" alt="Troll Overlay" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style="width: 60px; opacity: 0.85;">
+                </div>
+                <span id="pfpPreviewLabel" class="mt-2 text-yellow-300 text-xs"></span>
+            </div>
+
+            <div id="loader" class="hidden my-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-yellow-400 mx-auto"></div>
+                <p class="mt-2 font-glitch text-yellow-300">Trolling in Progress...</p>
+            </div>
+
+            <div id="resultArea" class="hidden">
+                 <p class="text-lg text-yellow-400 mb-4">Success! Drag, resize, and rotate the troll face for the perfect meme.</p>
+                <div class="max-w-xs mx-auto bg-gray-800 p-2 rounded-lg border border-gray-700">
+                    <canvas id="trollCanvas" width="400" height="400"></canvas>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                    <button id="downloadBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition w-full sm:w-auto">Download Troll</button>
+                    <button id="shareBtn" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg transition w-full sm:w-auto">Share on X</button>
+                </div>
+            </div>
+             <div id="errorArea" class="hidden mt-4 bg-red-900 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
+                <p id="errorMessage"></p>
+            </div>
+        </div>
+
+        <div class="absolute top-0 right-0 h-full w-1/4 md:w-1/5 overflow-hidden opacity-60">
+            <div class="meme-wall-scroll flex flex-col gap-4 p-4">
+                <img src="3.jpg" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
+                <img src="4.jpg" class="rounded-lg w-full border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+                <img src="5.jpg" class="rounded-lg wfull border-4 border-yellow-400 shadow-lg shadow-orange-400/40 outline outline-2 outline-offset-2 outline-orange-500">
+                <img src="6.png" class="rounded-lg w-full border-4 border-orange-400 shadow-lg shadow-yellow-400/40 outline outline-2 outline-offset-2 outline-yellow-500">
+                <img src="1.png" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
+                <img src="2.png" class="rounded-lg w-full border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+                <img src="3.jpg" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
+                <img src="4.jpg" class="rounded-lg wfull border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        VANTA.NET({
+            el: "#vanta-canvas",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0xffb300, // yellow-orange
+            backgroundColor: 0x2d1800, // deep orange background
+            points: 12.00,
+            maxDistance: 25.00,
+            spacing: 18.00
+        });
+
+        const usernameInput = document.getElementById('usernameInput');
+        const trollifyBtn = document.getElementById('trollifyBtn');
+        const loader = document.getElementById('loader');
+        const resultArea = document.getElementById('resultArea');
+        const errorArea = document.getElementById('errorArea');
+        const errorMessage = document.getElementById('errorMessage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const pfpPreviewArea = document.getElementById('pfpPreviewArea');
+        const pfpPreview = document.getElementById('pfpPreview');
+        const pfpPreviewLabel = document.getElementById('pfpPreviewLabel');
+        
+        let canvas;
+        const trollFaceUrl = 'https://i.imgur.com/YJ8b8rW.png'; 
+
+        const initCanvas = () => {
+            if (canvas) {
+                canvas.dispose();
+            }
+            canvas = new fabric.Canvas('trollCanvas', {
+                backgroundColor: '#374151'
+            });
+        };
+
+        const showError = (message) => {
+            errorMessage.textContent = message;
+            errorArea.classList.remove('hidden');
+            loader.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            pfpPreviewArea.classList.add('hidden');
+        };
+
+        const startTrollification = () => {
+            const username = usernameInput.value.trim().replace(/^@/, '');
+            if (!username) {
+                showError('Username cannot be empty. Problem?');
+                return;
+            }
+
+            // --- UI Reset ---
+            loader.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+            pfpPreviewArea.classList.add('hidden');
+            initCanvas();
+            
+            // --- DUMMY FUNCTIONALITY START ---
+            // Simulate a network delay to make it feel like it's processing.
+            setTimeout(() => {
+                // Use a fixed placeholder image instead of fetching the real one.
+                const avatarUrl = 'https://i.imgur.com/7Y22F92.png'; // This is a generic placeholder PFP
+                const trollImgUrl = `${trollFaceUrl}?${new Date().getTime()}`;
+
+                // --- PFP Loaded Successfully: Show Preview ---
+                pfpPreview.src = avatarUrl;
+                pfpPreviewLabel.textContent = `@${username}`; // Show the name the user typed
+                pfpPreviewArea.classList.remove('hidden');
+
+                // Wait a moment on the preview before showing the main canvas editor
+                setTimeout(() => {
+                    pfpPreviewArea.classList.add('hidden');
+
+                    // --- Initialize Fabric.js Canvas ---
+                    fabric.Image.fromURL(avatarUrl, (bgImg) => {
+                        const pfpSize = 400; // Use a fixed size for the dummy canvas
+                        canvas.setWidth(pfpSize);
+                        canvas.setHeight(pfpSize);
+                        canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas), {
+                            scaleX: canvas.width / bgImg.width,
+                            scaleY: canvas.height / bgImg.height,
+                        });
+
+                        // Now, load the troll face overlay
+                        fabric.Image.fromURL(trollImgUrl, (trollImg) => {
+                            trollImg.set({
+                                left: pfpSize / 2, // Center the troll face
+                                top: pfpSize / 2,
+                                scaleX: 0.5, 
+                                scaleY: 0.5,
+                                hasControls: true,
+                                hasBorders: true,
+                                cornerColor: '#00ffff',
+                                borderColor: '#ff00ff',
+                                cornerSize: 20,
+                                transparentCorners: false,
+                                originX: 'center',
+                                originY: 'center'
+                            });
+                            canvas.add(trollImg);
+                            canvas.setActiveObject(trollImg);
+                            canvas.renderAll();
+                            
+                            // --- Show Final Result ---
+                            loader.classList.add('hidden');
+                            resultArea.classList.remove('hidden');
+
+                        }, { crossOrigin: 'anonymous' });
+                    }, { crossOrigin: 'anonymous' });
+                }, 1200); // 1.2 second delay to show the preview
+            }, 1500); // 1.5 second delay to simulate "fetching"
+            // --- DUMMY FUNCTIONALITY END ---
+        };
+
+        trollifyBtn.addEventListener('click', startTrollification);
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startTrollification();
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1.0
+            });
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = `trolled_${usernameInput.value.trim().replace(/^@/, '') || 'user'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        shareBtn.addEventListener('click', () => {
+            const text = encodeURIComponent(`I just got trolled by #TrollCoin! They turned my PFP into this masterpiece. Troll your own at YOURWEBSITE.COM #GetTrolled #MemeCoin`);
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${text}`;
+            window.open(twitterUrl, '_blank');
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const contractHeader = document.getElementById('contractHeader');
+            const contractAddressSpan = document.getElementById('contractAddress');
+            
+            contractHeader.addEventListener('click', function() {
+                const contractAddress = contractAddressSpan.textContent;
+                navigator.clipboard.writeText(contractAddress).then(() => {
+                    // Visual feedback for copy
+                    const originalText = contractHeader.innerHTML;
+                    contractHeader.innerHTML = 'Copied!';
+                    contractHeader.classList.add('ring', 'ring-4', 'ring-yellow-300');
+                    setTimeout(() => {
+                        contractHeader.innerHTML = originalText;
+                        contractHeader.classList.remove('ring', 'ring-4', 'ring-yellow-300')
+                    }, 1000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

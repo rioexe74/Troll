@@ -3,310 +3,550 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Troll Coin - Get Trolled</title>
-    <!-- Chosen Palette: Neon Glitch -->
-    <!-- Application Structure Plan: The application uses a single-page, three-column "immersive" hero layout. The central column is the focal point, containing the primary user interaction: the "Trollifier" tool. This immediately engages the user with the site's core utility. The flanking columns ("Meme Walls") provide constant, dynamic visual stimulation, reinforcing the chaotic, meme-centric brand. This structure was chosen to maximize immediate engagement and virality by funneling users directly to the shareable content generator, which is the project's main growth engine. -->
-    <!-- Visualization & Content Choices: The core feature, the "Trollifier," uses client-side canvas manipulation (Fabric.js) to overlay a troll face onto a user's (mock) profile picture. Goal: Engagement/Virality. Method: Interactive Canvas. Interaction: User inputs a username, clicks a button, then can drag, scale, and rotate the overlay image. Justification: This provides an immediate, fun, and personalized reward, encouraging users to share their creation. The "Meme Walls" use a simple, continuous CSS animation to scroll images. Goal: Atmosphere/Branding. Method: HTML/CSS Animation. Justification: Creates a visually rich and dynamic environment without complex user interaction, setting the "trolling" tone instantly. -->
+    <title>TROLL Coin - Trollify Yourself</title>
+    <!-- Chosen Palette: "Troll's Grotto" - A dark theme with shades of deep gray and black, accented with a mischievous, glowing green for interactive elements and highlights, creating a thematic and visually cohesive experience. -->
+    <!-- Application Structure Plan: The application is a task-oriented single-page interface designed for a single, primary user flow: trollifying a Twitter profile picture. The structure is linear: 1. Header for branding. 2. A central interactive zone with a text input and a primary call-to-action button ("Troll Me!"). 3. A dynamic result area that conditionally displays a loader, the final generated image on a canvas, a download link, or an error message. 4. A footer for disclaimers. This structure was chosen to focus the user's attention entirely on the core utility of the page, minimizing clutter and guiding them intuitively from input to output. Decorative animations are placed in the background to enhance the theme without interfering with the primary task. -->
+    <!-- Visualization & Content Choices: Report Info: Fetch Twitter PFP -> Goal: Acquire user image -> Presentation: Simulated API call (due to single-file constraint) -> Interaction: User clicks "Troll Me!" button -> Justification: Simulates the secure proxy architecture described in the report while ensuring functionality in a self-contained file. | Report Info: Transform PFP -> Goal: Create meme image -> Presentation: HTML Canvas -> Interaction: JS draws user PFP, then overlays a transparent trollface image -> Justification: Canvas is the ideal tool for dynamic, client-side image composition. | Report Info: Decorations -> Goal: Enhance theme -> Presentation: Animated HTML divs -> Interaction: CSS keyframe animations with randomized properties via JS -> Justification: Provides an engaging, lively background without performance overhead. | Library/Method: Vanilla JS for all logic, Tailwind CSS for styling. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=VT323&display=swap" rel="stylesheet">
     <style>
-        @keyframes scroll {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-50%); }
-        }
-        .meme-wall-scroll {
-            animation: scroll 60s linear infinite;
-        }
-        @keyframes blink {
-            0%, 100% { filter: brightness(1) drop-shadow(0 0 0 #fff); opacity: 1; }
-            40% { filter: brightness(1.15) drop-shadow(0 0 8px #fff176); opacity: 1; }
-            50% { filter: brightness(1.25) drop-shadow(0 0 16px #ffb300); opacity: 0.25; }
-            60% { filter: brightness(1.15) drop-shadow(0 0 8px #fff176); opacity: 1; }
-        }
-        .blink {
-            animation: blink 2.2s infinite;
-        }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'VT323', monospace;
             overflow-x: hidden;
-            /* background color changed to deep orange */
-            background-color: #2d1800;
+            /* THEME CHANGE: New vibrant background gradient */
+            background:
+                radial-gradient(1200px 600px at 50% 0%, rgba(0, 255, 133, 0.15), transparent 65%), /* Neon Green */
+                radial-gradient(1200px 800px at 50% 100%, rgba(30, 144, 255, 0.18), transparent 60%), /* Electric Blue */
+                linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 45%, #000000 100%); /* Deep Charcoal/Black */
+            background-attachment: fixed;
         }
-        .font-glitch {
-            font-family: 'Rubik Mono One', sans-serif;
+        h1, h2, h3, button#troll-button {
+            font-family: 'Creepster', cursive;
         }
-        #vanta-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
+        .troll-decoration {
+            position: absolute;
+            z-index: 0;
+            opacity: 0.22;
+            animation-name: float-bg-xy;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
-        .btn-troll {
-            transition: all 0.3s ease;
-            /* box-shadow changed to orange/yellow */
-            box-shadow: 0 0 10px #ffb300, 0 0 20px #ffb300, 0 0 30px #ffb300;
+        .troll-decoration:hover {
+            transform: scale(1.5) !important;
+            opacity: 0.8;
         }
-        .btn-troll:hover {
-            transform: translateY(-3px) scale(1.05);
-            /* box-shadow changed to orange/yellow */
-            box-shadow: 0 0 15px #ff9800, 0 0 30px #ff9800, 0 0 45px #ff9800;
+        /* THEME CHANGE: Added electric-glow animation for headings */
+        .electric-glow-text {
+            animation: electric-glow 3s ease-in-out infinite;
         }
-        .glitch-text {
-            /* text-shadow changed to yellow/orange */
-            text-shadow: 
-                -1px -1px 0 #ffe082, 
-                 1px -1px 0 #ff9800, 
-                -1px  1px 0 #ffe082, 
-                 1px  1px 0 #ff9800;
+        @keyframes electric-glow {
+            0%, 100% {
+                text-shadow: 0 0 5px #1e90ff, 0 0 10px #1e90ff, 0 0 15px #0000ff;
+            }
+            50% {
+                text-shadow: 0 0 10px #1e90ff, 0 0 15px #0000ff, 0 0 20px #0000ff;
+            }
+        }
+        @keyframes float-bg-xy {
+            0% { transform: translate(0px, 0px) rotate(-10deg) scale(1); }
+            25% { transform: translate(30px, -20px) rotate(8deg) scale(1.08); }
+            50% { transform: translate(-25px, 30px) rotate(12deg) scale(0.95); }
+            75% { transform: translate(20px, -30px) rotate(-8deg) scale(1.05); }
+            100% { transform: translate(0px, 0px) rotate(-10deg) scale(1); }
+        }
+        @keyframes float-frame {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes bowlDrop {
+            0% { transform: translateX(-50%) translateY(-150px) scale(0.9); opacity: 0; }
+            60% { transform: translateX(-50%) translateY(10px) scale(1.03); opacity: 1; }
+            100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; filter: saturate(0.8) contrast(0.9); }
+            100% { transform: scale(1); opacity: 1; filter: none; }
+        }
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #4b5563;
+            border-top: 5px solid #00ff85; /* Neon Green */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        #result-canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 50%;
+        }
+        /* THEME CHANGE: Added thematic frames */
+        .side-frame {
+            width: 280px; /* Slightly wider for frame */
+            height: 380px; /* Slightly taller for frame */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            margin: 0 20px;
+            animation-name: float-frame;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            transition: transform 300ms ease, box-shadow 400ms ease, filter 400ms ease;
+            background-color: rgba(20, 25, 35, 0.6); /* Dark, semi-transparent background */
+            border: 2px solid #1e90ff; /* Electric blue border */
+            border-radius: 20px; /* Rounded corners for the frame */
+            box-shadow: 0 0 15px rgba(30, 144, 255, 0.5), inset 0 0 10px rgba(30, 144, 255, 0.3); /* Outer and inner glow */
+        }
+        /* THEME CHANGE: Enhanced hover and active effects for the new frames */
+        .side-frame:hover {
+            transform: translateY(-10px) scale(1.02);
+            filter: saturate(1.1);
+            box-shadow: 0 0 25px rgba(30, 144, 255, 0.7), inset 0 0 15px rgba(30, 144, 255, 0.5);
+        }
+        .side-frame:hover .frame-image {
+            transform: scale(1.1);
+        }
+        .frame-active {
+            box-shadow: 0 0 35px #00ff85, 0 0 0 4px rgba(30, 144, 255, 0.4), 0 0 0 8px rgba(0, 255, 133, 0.2), inset 0 0 15px rgba(0, 255, 133, 0.4);
+            border-color: #00ff85;
+        }
+        .side-frame.left {
+            animation-duration: 6s;
+        }
+        .side-frame.right {
+            animation-duration: 7s;
+        }
+        .side-frame .image-container {
+            width: 230px; /* Adjusted to fit inside the new frame padding */
+            height: 230px;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            overflow: hidden;
+            display: block;
+            border-radius: 16px;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5); /* Stronger shadow for depth */
+            margin-bottom: 15px; /* Increased margin */
+            background: rgba(30, 144, 255, 0.1);
+        }
+        .side-frame img.frame-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 400ms ease, filter 400ms ease, opacity 300ms ease;
+        }
+        .frame-image.grayscale { filter: grayscale(1) contrast(0.9); }
+        .frame-image.fading { opacity: 0; transform: scale(0.98); }
+        .frame-image.pop-in { animation: popIn 450ms ease-out; }
+        .side-frame .label {
+            font-family: 'Creepster', cursive;
+            font-size: 2rem;
+            color: #E0E0E0;
+            text-shadow: 2px 2px 4px #1e90ff;
+            transition: color 300ms ease, text-shadow 300ms ease;
+        }
+        .side-frame:hover .label {
+            color: #00ff85;
+            text-shadow: 0 0 10px #00ff85, 2px 2px 4px #1e90ff;
+        }
+        .bowl-cut {
+            position: absolute;
+            top: -12%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .bowl-cut.drop-in {
+            animation: bowlDrop 900ms ease-out forwards;
+        }
+        #social-icons a, #ca-box {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        #social-icons a:hover, #ca-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        #troll-button, #download-link {
+            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.3s ease;
+        }
+        #troll-button:hover, #download-link:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 20px #00ff85, 0 0 10px #1e90ff;
+        }
+        /* NEW: Added animation for the main card on hover */
+        #main-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
+        }
+        #main-card:hover {
+            transform: scale(1.02) translateY(-5px);
+            border-color: #00ff85;
+            box-shadow: 0 0 30px rgba(0, 255, 133, 0.6), 0 0 15px rgba(30, 144, 255, 0.4), 0 10px 30px rgba(0,0,0,0.7);
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white">
-    <div id="vanta-canvas"></div>
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-30">
-        <div id="contractHeader" class="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 hover:bg-orange-500 text-black font-bold shadow-lg border-2 border-orange-400 text-sm transition select-none">
-            <span>Contract Address (CA):</span>
-            <span id="contractAddress">000000</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16h8M8 12h8m-7 8h6a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        </div>
+    <!-- Social Icons Top Left -->
+    <div id="social-icons" style="position:fixed;top:24px;left:24px;z-index:50;display:flex;gap:12px;">
+        <a href="https://twitter.com/" target="_blank" rel="noopener" title="Twitter">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/twitter.svg" alt="Twitter" style="width:26px;height:26px;filter:brightness(0.7) sepia(1) hue-rotate(20deg) saturate(2);background:#fff3;border-radius:6px;padding:2px;">
+        </a>
+        <a href="https://pump.fun/" target="_blank" rel="noopener" title="Pump.fun" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:22px;background:#fff3;border-radius:6px;">
+            <span role="img" aria-label="Pump.fun">🎈</span>
+        </a>
+        <a href="https://axiom.xyz/" target="_blank" rel="noopener" title="Axiom" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:22px;background:#fff3;border-radius:6px;">
+            <span role="img" aria-label="Axiom">🧠</span>
+        </a>
     </div>
 
-    <div class="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
-        <div class="absolute top-0 left-0 h-full w-1/4 md:w-1/5 overflow-hidden opacity-60">
-            <div class="meme-wall-scroll flex flex-col gap-4 p-4">
-                <img src="1.png" class="rounded-lg w-full border-4 border-yellow-400 shadow-lg shadow-orange-400/40 outline outline-2 outline-offset-2 outline-orange-500">
-                <img src="2.png" class="rounded-lg w-full border-4 border-orange-400 shadow-lg shadow-yellow-400/40 outline outline-2 outline-offset-2 outline-yellow-500">
-                <img src="3.jpg" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
-                <img src="4.jpg" class="rounded-lg w-full border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
-                <img src="5.jpg" class="rounded-lg w-full border-4 border-yellow-400 shadow-lg shadow-orange-400/40 outline outline-2 outline-offset-2 outline-orange-500">
-                <img src="6.png" class="rounded-lg w-full border-4 border-orange-400 shadow-lg shadow-yellow-400/40 outline outline-2 outline-offset-2 outline-yellow-500">
-                <img src="1.png" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
-                <img src="2.png" class="rounded-lg wfull border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+    <!-- Contract Address Box -->
+    <div id="ca-box" style="position:fixed;top:24px;right:24px;z-index:50;" class="bg-gray-800 border-2 border-blue-400 rounded-lg px-4 py-2 shadow-lg flex items-center gap-2 cursor-pointer select-none transition">
+        <span class="font-mono text-gray-200 text-xs">CA:</span>
+        <span id="ca-value" class="font-mono text-blue-400 text-xs">000000000000000</span>
+        <span id="ca-copied" class="text-green-400 text-xs ml-2 hidden">Copied!</span>
+    </div>
+
+    <div id="decoration-container"></div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-[300px_minmax(auto,640px)_300px] items-center justify-items-center gap-8 w-full max-w-7xl mx-auto">
+        <!-- Before Frame -->
+        <div id="before-frame" class="side-frame left hidden sm:flex">
+            <div class="image-container">
+                <img id="before-image" src="images/before/before1.jpg" alt="Before" class="frame-image grayscale">
             </div>
+            <div class="label">BEFORE</div>
         </div>
 
-        <div class="z-10 w-full max-w-2xl mx-auto text-center bg-black bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 md:p-10 border border-yellow-400 shadow-2xl shadow-yellow-500/20">
-            <h1 class="font-glitch text-4xl md:text-6xl lg:text-7xl mb-4 glitch-text uppercase">Get Trolled</h1>
-            <p class="text-yellow-200 mb-8 max-w-md mx-auto">Your profile picture is boring. Our highly advanced, probably-sentient Troll Engine will apply a 1000% necessary upgrade. Enter your Twitter handle to begin.</p>
-            
-            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <input id="usernameInput" type="text" placeholder="@your_twitter_name" class="w-full sm:w-64 bg-gray-800 border-2 border-yellow-500 focus:border-orange-400 focus:ring-0 text-white placeholder-yellow-500 rounded-lg px-4 py-3 text-center transition">
-                <button id="trollifyBtn" class="btn-troll font-glitch bg-yellow-500 hover:bg-orange-500 text-white rounded-lg px-8 py-3 text-xl uppercase">Trollify!</button>
-            </div>
-            <div id="pfpPreviewArea" class="hidden flex flex-col items-center justify-center mb-6">
-                <div class="relative inline-block">
-                    <img id="pfpPreview" src="" alt="Profile Preview" class="rounded-full border-4 border-yellow-400 shadow-lg shadow-orange-400/40 w-32 h-32 object-cover">
-                    <img src="https://i.imgur.com/YJ8b8rW.png" alt="Troll Overlay" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style="width: 60px; opacity: 0.85;">
+    <!-- THEME CHANGE: Added subtle gradient to main card background -->
+    <!-- NEW: Added id="main-card" to target for hover animation -->
+    <div id="main-card" class="backdrop-blur-sm border-2 border-blue-500 p-6 sm:p-8 rounded-2xl shadow-2xl shadow-black/60 max-w-lg w-full z-10 text-center justify-self-center mx-auto" style="background: linear-gradient(160deg, rgba(30, 35, 48, 0.85) 0%, rgba(13, 17, 23, 0.85) 100%);">
+            <header class="mb-6">
+                <div class="flex justify-center items-center gap-4">
+                    <h1 class="text-4xl sm:text-6xl text-blue-400 tracking-wider electric-glow-text">TROLL Coin</h1>
                 </div>
-                <span id="pfpPreviewLabel" class="mt-2 text-yellow-300 text-xs"></span>
-            </div>
+                <p class="text-gray-400 mt-2 text-lg">The Ultimate Meme Coin Experience</p>
+            </header>
 
-            <div id="loader" class="hidden my-4">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-yellow-400 mx-auto"></div>
-                <p class="mt-2 font-glitch text-yellow-300">Trolling in Progress...</p>
-            </div>
+            <main>
+                <section id="troll-engine">
+                    <h2 class="text-2xl sm:text-3xl text-blue-300 mb-4 electric-glow-text">We gonna troll you..!</h2>
+                    <p class="text-gray-300 mb-4">Paste your X/Twitter profile link. We'll generate a crispy PFP.</p>
+                    <form id="troll-form" class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="twitter-input" class="flex-grow bg-gray-800 border-2 border-gray-600 focus:border-blue-500 focus:ring-blue-500 rounded-lg p-3 text-lg text-center sm:text-left text-gray-100 placeholder-gray-500" placeholder="https://x.com/your_handle" required>
+                        <button type="submit" id="troll-button" class="bg-green-500 hover:bg-green-400 text-gray-900 font-bold py-3 px-6 rounded-lg text-2xl transition-all">Troll me</button>
+                    </form>
 
-            <div id="resultArea" class="hidden">
-                 <p class="text-lg text-yellow-400 mb-4">Success! Drag, resize, and rotate the troll face for the perfect meme.</p>
-                <div class="max-w-xs mx-auto bg-gray-800 p-2 rounded-lg border border-gray-700">
-                    <canvas id="trollCanvas" width="400" height="400"></canvas>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-                    <button id="downloadBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition w-full sm:w-auto">Download Troll</button>
-                    <button id="shareBtn" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg transition w-full sm:w-auto">Share on X</button>
-                </div>
-            </div>
-             <div id="errorArea" class="hidden mt-4 bg-red-900 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
-                <p id="errorMessage"></p>
-            </div>
+                    <div id="status-container" class="mt-8 min-h-[300px] flex flex-col justify-center items-center bg-black/20 rounded-xl text-gray-200">
+                        <div id="loader" class="loader hidden"></div>
+                        <div id="status-steps" class="hidden text-gray-300 mt-4 text-center">
+                            <p id="step-text" class="text-xl"></p>
+                            <p id="eta-text" class="text-sm text-gray-400 mt-1"></p>
+                            <div id="timer" class="mt-2 text-gray-400 text-sm flex items-center justify-center gap-3">
+                                <span id="timer-elapsed">00:00</span>
+                                <span class="opacity-60">/</span>
+                                <span id="timer-total">00:00</span>
+                            </div>
+                        </div>
+                        <div id="result-container" class="hidden w-full flex flex-col items-center">
+                            <h3 class="text-4xl text-blue-400 mb-4 electric-glow-text">Problem?</h3>
+                            <div class="chart-container w-full max-w-xs mx-auto">
+                                <canvas id="result-canvas" class="border-4 border-blue-400 shadow-lg shadow-black/40"></canvas>
+                            </div>
+                            <a id="download-link" class="hidden mt-6 bg-green-500 hover:bg-green-400 text-gray-900 font-bold py-2 px-5 rounded-lg text-lg transition-all">Download Trolled PFP</a>
+                        </div>
+                        <div id="error-message" class="hidden text-red-200 text-lg p-4 bg-red-900/50 rounded-lg border-l-4 border-red-500"></div>
+                         <div id="initial-message" class="text-gray-300">
+                            <img src="meme3.png" alt="Troll" class="mx-auto w-32 h-32 rounded-full border-4 border-blue-400/80">
+                            <p class="mt-4 text-gray-300">Your masterpiece awaits...</p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer class="mt-8">
+                <p class="text-xs text-gray-500">Disclaimer: $TROLL is a meme coin with no intrinsic value. Invest for the lulz. Problem?</p>
+            </footer>
         </div>
 
-        <div class="absolute top-0 right-0 h-full w-1/4 md:w-1/5 overflow-hidden opacity-60">
-            <div class="meme-wall-scroll flex flex-col gap-4 p-4">
-                <img src="3.jpg" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
-                <img src="4.jpg" class="rounded-lg w-full border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
-                <img src="5.jpg" class="rounded-lg wfull border-4 border-yellow-400 shadow-lg shadow-orange-400/40 outline outline-2 outline-offset-2 outline-orange-500">
-                <img src="6.png" class="rounded-lg w-full border-4 border-orange-400 shadow-lg shadow-yellow-400/40 outline outline-2 outline-offset-2 outline-yellow-500">
-                <img src="1.png" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
-                <img src="2.png" class="rounded-lg w-full border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
-                <img src="3.jpg" class="rounded-lg w-full border-4 border-yellow-500 shadow-lg shadow-orange-500/40 outline outline-2 outline-offset-2 outline-orange-400">
-                <img src="4.jpg" class="rounded-lg wfull border-4 border-orange-500 shadow-lg shadow-yellow-500/40 outline outline-2 outline-offset-2 outline-yellow-400">
+        <!-- After Frame -->
+        <div id="after-frame" class="side-frame right hidden sm:flex">
+            <div class="image-container">
+                 <img id="after-image" src="images/after/after1.jpg" alt="After" class="frame-image grayscale">
+                 <img id="bowl-cut" src="face2.png" alt="Bowl Cut" class="bowl-cut">
             </div>
+            <div class="label">AFTER</div>
         </div>
     </div>
 
     <script>
-        VANTA.NET({
-            el: "#vanta-canvas",
-            mouseControls: true,
-            touchControls: true,
-            gyroControls: false,
-            minHeight: 200.00,
-            minWidth: 200.00,
-            scale: 1.00,
-            scaleMobile: 1.00,
-            color: 0xffb300, // yellow-orange
-            backgroundColor: 0x2d1800, // deep orange background
-            points: 12.00,
-            maxDistance: 25.00,
-            spacing: 18.00
-        });
-
-        const usernameInput = document.getElementById('usernameInput');
-        const trollifyBtn = document.getElementById('trollifyBtn');
-        const loader = document.getElementById('loader');
-        const resultArea = document.getElementById('resultArea');
-        const errorArea = document.getElementById('errorArea');
-        const errorMessage = document.getElementById('errorMessage');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const shareBtn = document.getElementById('shareBtn');
-        const pfpPreviewArea = document.getElementById('pfpPreviewArea');
-        const pfpPreview = document.getElementById('pfpPreview');
-        const pfpPreviewLabel = document.getElementById('pfpPreviewLabel');
-        
-        let canvas;
-        const trollFaceUrl = 'https://i.imgur.com/YJ8b8rW.png'; 
-
-        const initCanvas = () => {
-            if (canvas) {
-                canvas.dispose();
-            }
-            canvas = new fabric.Canvas('trollCanvas', {
-                backgroundColor: '#374151'
+        // Contract Address Copy Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const caBox = document.getElementById('ca-box');
+            const caValue = document.getElementById('ca-value');
+            const caCopied = document.getElementById('ca-copied');
+            caBox.addEventListener('click', () => {
+                navigator.clipboard.writeText(caValue.textContent);
+                caCopied.classList.remove('hidden');
+                setTimeout(() => caCopied.classList.add('hidden'), 1200);
             });
-        };
-
-        const showError = (message) => {
-            errorMessage.textContent = message;
-            errorArea.classList.remove('hidden');
-            loader.classList.add('hidden');
-            resultArea.classList.add('hidden');
-            pfpPreviewArea.classList.add('hidden');
-        };
-
-        const startTrollification = () => {
-            const username = usernameInput.value.trim().replace(/^@/, '');
-            if (!username) {
-                showError('Username cannot be empty. Problem?');
-                return;
-            }
-
-            // --- UI Reset ---
-            loader.classList.remove('hidden');
-            resultArea.classList.add('hidden');
-            errorArea.classList.add('hidden');
-            pfpPreviewArea.classList.add('hidden');
-            initCanvas();
-            
-            // --- DUMMY FUNCTIONALITY START ---
-            // Simulate a network delay to make it feel like it's processing.
-            setTimeout(() => {
-                // Use a fixed placeholder image instead of fetching the real one.
-                const avatarUrl = 'https://i.imgur.com/7Y22F92.png'; // This is a generic placeholder PFP
-                const trollImgUrl = `${trollFaceUrl}?${new Date().getTime()}`;
-
-                // --- PFP Loaded Successfully: Show Preview ---
-                pfpPreview.src = avatarUrl;
-                pfpPreviewLabel.textContent = `@${username}`; // Show the name the user typed
-                pfpPreviewArea.classList.remove('hidden');
-
-                // Wait a moment on the preview before showing the main canvas editor
-                setTimeout(() => {
-                    pfpPreviewArea.classList.add('hidden');
-
-                    // --- Initialize Fabric.js Canvas ---
-                    fabric.Image.fromURL(avatarUrl, (bgImg) => {
-                        const pfpSize = 400; // Use a fixed size for the dummy canvas
-                        canvas.setWidth(pfpSize);
-                        canvas.setHeight(pfpSize);
-                        canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas), {
-                            scaleX: canvas.width / bgImg.width,
-                            scaleY: canvas.height / bgImg.height,
-                        });
-
-                        // Now, load the troll face overlay
-                        fabric.Image.fromURL(trollImgUrl, (trollImg) => {
-                            trollImg.set({
-                                left: pfpSize / 2, // Center the troll face
-                                top: pfpSize / 2,
-                                scaleX: 0.5, 
-                                scaleY: 0.5,
-                                hasControls: true,
-                                hasBorders: true,
-                                cornerColor: '#00ffff',
-                                borderColor: '#ff00ff',
-                                cornerSize: 20,
-                                transparentCorners: false,
-                                originX: 'center',
-                                originY: 'center'
-                            });
-                            canvas.add(trollImg);
-                            canvas.setActiveObject(trollImg);
-                            canvas.renderAll();
-                            
-                            // --- Show Final Result ---
-                            loader.classList.add('hidden');
-                            resultArea.classList.remove('hidden');
-
-                        }, { crossOrigin: 'anonymous' });
-                    }, { crossOrigin: 'anonymous' });
-                }, 1200); // 1.2 second delay to show the preview
-            }, 1500); // 1.5 second delay to simulate "fetching"
-            // --- DUMMY FUNCTIONALITY END ---
-        };
-
-        trollifyBtn.addEventListener('click', startTrollification);
-        usernameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                startTrollification();
-            }
         });
+        document.addEventListener('DOMContentLoaded', () => {
+            const trollForm = document.getElementById('troll-form');
+            const twitterInput = document.getElementById('twitter-input');
+            const loader = document.getElementById('loader');
+            const resultContainer = document.getElementById('result-container');
+            const errorMessage = document.getElementById('error-message');
+            const initialMessage = document.getElementById('initial-message');
+            const downloadLink = document.getElementById('download-link');
+            const canvas = document.getElementById('result-canvas');
+            const ctx = canvas.getContext('2d');
+            const stepText = document.getElementById('step-text');
+            const etaText = document.getElementById('eta-text');
+            const statusSteps = document.getElementById('status-steps');
+            const beforeFrame = document.getElementById('before-frame');
+            const afterFrame = document.getElementById('after-frame');
+            const bowlCut = document.getElementById('bowl-cut');
+            const timerElapsedEl = document.getElementById('timer-elapsed');
+            const timerTotalEl = document.getElementById('timer-total');
+            const beforeImgEl = document.getElementById('before-image');
+            const afterImgEl = document.getElementById('after-image');
 
-        downloadBtn.addEventListener('click', () => {
-            const dataURL = canvas.toDataURL({
-                format: 'png',
-                quality: 1.0
+            const TROLLFACE_URL = 'troll meme face 1.png';
+            const BEFORE_IMAGES = [
+                'images/before/before1.jpg',
+                'images/before/before2.jpg',
+                'images/before/before3.jpg',
+                'images/before/before4.jpg'
+            ];
+            const AFTER_IMAGES = [
+                'images/after/after1.jpg',
+                'images/after/after2.jpg',
+                'images/after/after3.jpg',
+                'images/after/after4.jpg'
+            ];
+            let beforeIdx = 0;
+            let afterIdx = 0;
+            let slideshowIntervalId;
+            let beforeIdxRef = { value: beforeIdx };
+            let afterIdxRef = { value: afterIdx };
+
+            trollForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = twitterInput.value.trim().replace('https://x.com/', '').replace('@', '');
+
+                if (!username) {
+                    showError('Please enter a Twitter username.');
+                    return;
+                }
+
+                showLoader();
+                runStatusFlow();
+                if (!slideshowIntervalId) {
+                    startSlideshows();
+                }
+
+                try {
+                    const data = await fetchTwitterData(username);
+                    const originalPfpUrl = data.profile_image_url.replace('_normal', '_400x400');
+                    await trollifyImage(originalPfpUrl);
+                    // Mirror result into AFTER frame image
+                    try {
+                        const dataUrl = canvas.toDataURL('image/png');
+                        afterImgEl.src = dataUrl;
+                        clearInterval(slideshowIntervalId); // Pause slideshow to feature the result
+                        setTimeout(() => { startSlideshows(); }, 4000); // Resume after a delay
+                    } catch (_) { 
+                        if (!slideshowIntervalId) startSlideshows();
+                    }
+                    showResult();
+                } catch (error) {
+                    showError(error.message);
+                }
             });
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = `trolled_${usernameInput.value.trim().replace(/^@/, '') || 'user'}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
 
-        shareBtn.addEventListener('click', () => {
-            const text = encodeURIComponent(`I just got trolled by #TrollCoin! They turned my PFP into this masterpiece. Troll your own at YOURWEBSITE.COM #GetTrolled #MemeCoin`);
-            const twitterUrl = `https://twitter.com/intent/tweet?text=${text}`;
-            window.open(twitterUrl, '_blank');
-        });
+            function showLoader() {
+                loader.classList.remove('hidden');
+                resultContainer.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                initialMessage.classList.add('hidden');
+                statusSteps.classList.remove('hidden');
+                beforeFrame.classList.add('frame-active');
+                afterFrame.classList.remove('frame-active');
+                bowlCut.classList.remove('drop-in');
+                document.getElementById('after-image').classList.add('grayscale');
+            }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const contractHeader = document.getElementById('contractHeader');
-            const contractAddressSpan = document.getElementById('contractAddress');
-            
-            contractHeader.addEventListener('click', function() {
-                const contractAddress = contractAddressSpan.textContent;
-                navigator.clipboard.writeText(contractAddress).then(() => {
-                    // Visual feedback for copy
-                    const originalText = contractHeader.innerHTML;
-                    contractHeader.innerHTML = 'Copied!';
-                    contractHeader.classList.add('ring', 'ring-4', 'ring-yellow-300');
-                    setTimeout(() => {
-                        contractHeader.innerHTML = originalText;
-                        contractHeader.classList.remove('ring', 'ring-4', 'ring-yellow-300')
-                    }, 1000);
+            function showResult() {
+                statusSteps.classList.add('hidden');
+                loader.classList.add('hidden');
+                resultContainer.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+                beforeFrame.classList.remove('frame-active');
+                afterFrame.classList.add('frame-active');
+                requestAnimationFrame(() => {
+                    bowlCut.classList.add('drop-in');
+                    const ai = document.getElementById('after-image');
+                    ai.classList.remove('grayscale');
+                    ai.classList.add('pop-in');
                 });
-            });
+            }
+
+            function showError(message) {
+                statusSteps.classList.add('hidden');
+                loader.classList.add('hidden');
+                resultContainer.classList.add('hidden');
+                errorMessage.textContent = `Error: ${message}`;
+                errorMessage.classList.remove('hidden');
+                initialMessage.classList.remove('hidden');
+            }
+
+            async function fetchTwitterData(username) {
+                await new Promise(resolve => setTimeout(resolve, 1500)); 
+
+                if (username.toLowerCase() === 'fail') {
+                    throw new Error('User not found. Try another username.');
+                }
+
+                return {
+                    profile_image_url: `https://placehold.co/400x400/E2E8F0/1F2937?text=${username.charAt(0).toUpperCase()}`
+                };
+            }
+
+            function runStatusFlow() {
+                const steps = [
+                    { text: 'Initializing…', seconds: 2 },
+                    { text: 'Original PFP Secured', seconds: 2 },
+                    { text: 'Applying Troll Treatment', seconds: 2 }
+                ];
+                let totalRemaining = steps.reduce((s, x) => s + x.seconds, 0);
+                const totalInitial = totalRemaining;
+                timerTotalEl.textContent = `00:${String(totalInitial).padStart(2,'0')}`;
+                let elapsed = 0;
+                let timerInterval;
+
+                function updateEta() {
+                    etaText.textContent = `Estimated time: ${totalRemaining}s`;
+                    timerElapsedEl.textContent = `00:${String(elapsed).padStart(2,'0')}`;
+                }
+
+                let idx = 0;
+                function next() {
+                    if (idx >= steps.length) {
+                        clearInterval(timerInterval);
+                        return;
+                    }
+                    const step = steps[idx];
+                    stepText.textContent = step.text;
+                    updateEta();
+                    
+                    let stepElapsed = 0;
+                    const stepDuration = step.seconds;
+                    
+                    timerInterval = setInterval(() => {
+                        if (stepElapsed < stepDuration) {
+                            stepElapsed++;
+                            totalRemaining--;
+                            elapsed++;
+                            updateEta();
+                        } else {
+                            clearInterval(timerInterval);
+                            idx++;
+                            next();
+                        }
+                    }, 1000);
+                }
+                next();
+            }
+
+            function startSlideshows() {
+                clearInterval(slideshowIntervalId);
+                beforeIdxRef.value = beforeIdx;
+                afterIdxRef.value = afterIdx;
+                const changeImage = (el, list, idxRef) => {
+                    el.classList.add('fading');
+                    setTimeout(() => {
+                        idxRef.value = (idxRef.value + 1) % list.length;
+                        el.src = list[idxRef.value];
+                        el.onload = () => {
+                            el.classList.remove('fading');
+                        };
+                    }, 300);
+                };
+                slideshowIntervalId = setInterval(() => {
+                    changeImage(beforeImgEl, BEFORE_IMAGES, beforeIdxRef);
+                    changeImage(afterImgEl, AFTER_IMAGES, afterIdxRef);
+                }, 2500);
+            }
+
+            function loadImage(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous'; 
+                    img.onload = () => resolve(img);
+                    img.onerror = (err) => reject(new Error('Failed to load image. The user might have a protected profile or the image is unavailable.'));
+                    img.src = src;
+                });
+            }
+
+            async function trollifyImage(userPfpUrl) {
+                try {
+                    const [userImage, trollImage] = await Promise.all([
+                        loadImage(userPfpUrl),
+                        loadImage('troll meme face 1.png')
+                    ]);
+
+                    canvas.width = 400;
+                    canvas.height = 400;
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(userImage, 0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(trollImage, 0, 0, canvas.width, canvas.height);
+
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.download = `trolled_${twitterInput.value.trim().replace('https://x.com/', '')}.png`;
+                    downloadLink.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error('Canvas drawing error:', error);
+                    throw new Error('Could not process the image for trollification.');
+                }
+            }
+            
+            function createDecorations() {
+                const container = document.getElementById('decoration-container');
+                const numDecorations = 32;
+                const icons = ['12.png', '13.png'];
+                for (let i = 0; i < numDecorations; i++) {
+                    const decoration = document.createElement('img');
+                    decoration.src = icons[i % 2];
+                    decoration.classList.add('troll-decoration');
+                    const size = Math.random() * 40 + 24;
+                    decoration.style.width = `${size}px`;
+                    decoration.style.height = `${size}px`;
+                    decoration.style.left = `${Math.random() * 100}vw`;
+                    decoration.style.top = `${Math.random() * 100}vh`;
+                    decoration.style.animationDuration = `${Math.random() * 8 + 7}s`;
+                    decoration.style.animationDelay = `${Math.random() * 12}s`;
+                    container.appendChild(decoration);
+                }
+            }
+
+            createDecorations();
+            startSlideshows();
         });
     </script>
 </body>
